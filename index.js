@@ -14,14 +14,21 @@ const puppeteer = require('puppeteer');
 
 (
   async function () {
-    try {
-      const { source, paginationTypes } = await ApiCalls.fetchInitialRequiredData();
-      console.log('required info -> ', { source, paginationTypes });
 
-      const browser = await puppeteer.launch({
-        headless: false,
-        defaultViewport: { width: 1000, height: 1000 }
+    const browser = await puppeteer.launch({
+      headless: false,
+      defaultViewport: { width: 1000, height: 1000 }
+    });
+
+    try {
+      const { source, paginationTypes, scrapingSessionId } = await ApiCalls.fetchInitialRequiredData();
+      console.log('required info -> ', {
+        source,
+        paginationTypes,
+        fields: source.SourceFields,
+        fieldType: source.SourceFields[0].FieldType,
       });
+
       const page = await browser.newPage();
       await page.goto(source.url, {
         waitUntil: ['load', 'domcontentloaded', 'networkidle0', 'networkidle2']
@@ -81,21 +88,81 @@ const puppeteer = require('puppeteer');
 
       // from here, we're on the right page. we can start taking the field details for each of the properties, and package them for delivery to the backend.
       console.log('extracted property links -> ', propertyLinks);
-      const scrapedProperties = {};
 
       // for each page, 
       // visit the page, 
       // get the values, 
       // create an obj for the prop
       // place that obj in the scrapedProperties
-      propertyLinks.forEach(each => {
-        
-      })
+      const properties = await Promise.all(propertyLinks.slice(1, 4).map(async each => {
+        const property = { url: each, };
+        let newPage = await browser.newPage();
+        await newPage.goto(each, {
+          waitUntil: ['load', 'domcontentloaded', 'networkidle0', 'networkidle2'],
+          timeout: 1000 * 60 * 5,
+        });
 
-      // await browser.close();
+        const initialDetails = await Promise.all(source.SourceFields.map(async each => {
+          const { selector, FieldType: fieldType, id } = each;
+          let fieldValue = '';
+
+          if (fieldType.label === 'text') {
+            fieldValue = await getText(selector, newPage);
+          } else if (fieldType.label === 'image') {
+            fieldValue = await getImages(selector, newPage);
+          }
+          console.log('field value -> ', fieldValue);
+          return { [id]: fieldValue };
+        }));
+
+        const details = initialDetails.reduce((final, each) => {
+          const [key] = Object.keys(each);
+          return {
+            ...final,
+            [key]: each[key],
+          };
+        });
+        // we want to get all the field details from the page, and create the obj.
+        return { ...property, details, };
+      }));
+      // in the end, we want to send the ff obj to the back:
+      /**
+       * {
+       * properties: [],
+       * sourceId: '',
+       * scraperSessionId: '',
+       * }
+       */
+      console.log('properties scraped -> ', JSON.stringify(properties));
+
+      await ApiCalls.createProperties({
+        properties,
+        sourceId: source.id,
+        scraperSessionId: scrapingSessionId,
+      });
     } catch (e) {
       // over here, send the error to the backend
       console.log('error -> ', e);
-    }
-  })();
+    } finally {
+      await browser.close();
 
+    }
+  }
+)();
+
+
+async function getText(selector, page) {
+  const value = await page
+    .evaluate(selector => document.querySelector(selector).textContent, selector)
+    .catch(e => { console.log('failed to get selector text -> ', e); });
+
+  return value;
+}
+
+async function getImages(selector, page) {
+  const value = await page
+    .evaluate(selector => document.querySelectorAll(selector).src, selector)
+    .catch(e => console.log('failed to get images -> ', e));
+
+  return value;
+}

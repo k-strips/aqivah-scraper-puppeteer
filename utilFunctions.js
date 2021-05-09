@@ -51,12 +51,11 @@ const fetchInitialRequiredData = async () => {
     //fetch the next source to scrape
     //fetch the pagination types
 
-    const response = await Promise.all([
-      fetchNextSource(),
-      // fetchPaginationTypes(),
-    ]);
+    const source            = await fetchNextSource();
+    const scrapingSessionId = await initializeScrapingSession(source.id);
     return {
-      source: response[0],
+      source,
+      scrapingSessionId,
       paginationTypes: { CLICK: 'CLICK', INFINITE: 'INFINITE', },
     };
   } catch (e) {
@@ -82,21 +81,17 @@ const goToPage = async ({ paginationTypeOptions, paginationType, page, pageNumbe
 const createProperties = async properties => {
   try {
     console.log('\n*** attempting to submit properties to api');
+    console.log('\n sending values -> ', properties);
     // object sent to the api should be of the following form:
     /**
      * {
-     *  scraperSessionId,
-     *  [property id]: {
-     *    fieldId: value,
-     *    fieldId: value,
-     *    fieldId: value,
-     *  }
-     * [property id 2]: {
-     *    fieldId: value,
-     *    fieldId: value,
-     *    fieldId: value,
+      * properties: [
+      *  {id}: {fieldId: value, fieldId2: value2, fieldId3, value3}
+      * ]
+      * scraperSessionId,
+      * sourceId,
      * }
-     * }
+     * 
      */
     const response = await PropertiesApi.create(properties);
     console.log('*** 🎉 successfully submitted properites');
@@ -109,11 +104,11 @@ const createProperties = async properties => {
 const initializeScrapingSession = async (sourceId) => {
   try {
     console.log('\n*** initializing scraping session ***');
-    const response = await ScrapersApi.initializeSession(sourceId);
-    console.log(`\n*** ${this.celebrate} successfully initialized scraping session ${JSON.stringify(response)}`);
+    const response = await ScrapersApi.initializeSession({sourceId});
+    console.log(`\n*** ${celebrate} successfully initialized scraping session ${JSON.stringify(response)}`);
     return response.id;
   } catch (e) {
-    console.log(`${this.danger} failed to initialize scraping session.`);
+    console.log(`${danger} failed to initialize scraping session. -> `, e);
     return ({ success: false, message: 'Failed to initialize scraping session', error: e });
   }
 };

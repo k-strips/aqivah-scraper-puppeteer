@@ -14,13 +14,17 @@ const changeStatus = (id, status) => {
 };
 
 function initializeSession({ sourceId, scraper = SCRAPER_TYPES.NEW }) {
+  console.log('source id -> ', sourceId)
   if (!sourceId) {
     throw new Error('Source id is required for creating a scraping session');
   };
   return api
     .post(`/scraper-sessions`, { scraper, sourceId })
     .then(returnResponseOrError)
-    .catch(e => { throw e; });
+    .catch(e => {
+      console.log('couldnt initialize scraping session -> ', e);
+      throw e;
+    });
 }
 
 // function storeError(error)
