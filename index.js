@@ -161,7 +161,14 @@ async function getText(selector, page) {
 
 async function getImages(selector, page) {
   const value = await page
-    .evaluate(selector => document.querySelectorAll(selector).src, selector)
+    .evaluate(
+      selector => {
+        return document.querySelectorAll(selector);
+      },
+      selector
+    ).then(
+      images => console.log('images -> ', images)
+    )
     .catch(e => console.log('failed to get images -> ', e));
 
   return value;
