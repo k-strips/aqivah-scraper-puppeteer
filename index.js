@@ -17,7 +17,7 @@ const puppeteer = require('puppeteer');
 
     const browser = await puppeteer.launch({
       headless: false,
-      defaultViewport: { width: 1000, height: 1000 }
+      defaultViewport: { width: 2000, height: 2000 }
     });
 
     try {
@@ -30,6 +30,7 @@ const puppeteer = require('puppeteer');
       });
 
       const page = await browser.newPage();
+      await page.setDefaultNavigationTimeout(0)
       await page.goto(source.url, {
         waitUntil: ['load', 'domcontentloaded', 'networkidle0', 'networkidle2']
       });
@@ -40,19 +41,19 @@ const puppeteer = require('puppeteer');
       if (source.paginationType === paginationTypes.CLICK) {
         // click on the next page link lastScrapedPage + 1 times to go to the right page
         // we'll have to wait after each click, for the next page to load.
-        console.log("pagination type is click");
+        console.log("pagination type is click", source.clickPaginationSelector);
         const pageToScrape = source.lastScrapedPage;
 
         for (let i = 0;i < pageToScrape;i++) {
-          await page.focus(source.clickPaginationSelector);
-          await page.evaluate(() => {
-            document.querySelector('#pagenumnext').click();
-          });
-
+          await page.waitForSelector(source.clickPaginationSelector);
+          await page.click(source.clickPaginationSelector);
         }
+
         propertyLinks = await page.evaluate(
           (source) => [...document.querySelectorAll(source.singlePropertyQuerySelector)]
-            .map(each => each.href), source);
+            .map(each => each.href),
+          source
+        );
 
       } else if (source.paginationType === paginationTypes.INFINITE) {
 
@@ -135,6 +136,8 @@ const puppeteer = require('puppeteer');
        */
       console.log('properties scraped -> ', JSON.stringify(properties));
 
+      // to stop creating properties in the db, we're commenting this out till we're done.
+
       await ApiCalls.createProperties({
         properties,
         sourceId: source.id,
@@ -163,11 +166,17 @@ async function getImages(selector, page) {
   const value = await page
     .evaluate(
       selector => {
-        return document.querySelectorAll(selector);
+        return [...document.querySelectorAll(selector)]
+          .map(each => each.getAttribute("src"))
+          .filter(each => Boolean(each))
+          .reduce((final, each) => `${final}, ${each}`, '');
       },
       selector
     ).then(
-      images => console.log('images -> ', images)
+      images => {
+        console.log('images -> ', images);
+        return images;
+      }
     )
     .catch(e => console.log('failed to get images -> ', e));
 
