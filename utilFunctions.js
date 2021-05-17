@@ -11,7 +11,7 @@ const loading = '🤞🏾';
 
 const fetchNextSource = async () => {
   try {
-    console.log(`*** ${this.loading} fetching next source to scrape...`);
+    console.log(`*** ${loading} fetching next source to scrape...`);
     const response = await SourcesApi.getNextSourceToScrape();
     console.log('retrieved next source to scrape -> ', response);
     return response;
