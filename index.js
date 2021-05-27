@@ -105,16 +105,17 @@ const puppeteer = require('puppeteer');
 
         const initialDetails = await Promise.all(
           source
-            ?.SourceFields
-            ?.filter(each => each?.isActive)
-            ?.map(async each => {
+            .SourceFields
+            .filter(each => each.isActive)
+            .map(async each => {
               const { selector, FieldType: fieldType, id } = each;
               let fieldValue = '';
+              if (!fieldType) return { [id]: each.defaultValue };
 
               if (fieldType.label === 'text') {
-                fieldValue = await getText(selector, newPage);
+                fieldValue = await getText(selector, newPage) || each.defaultValue;
               } else if (fieldType.label === 'image') {
-                fieldValue = await getImages(selector, newPage);
+                fieldValue = await getImages(selector, newPage) || each.defaultValue;
               }
               console.log('field value -> ', fieldValue);
               return { [id]: fieldValue };
@@ -150,7 +151,7 @@ const puppeteer = require('puppeteer');
       // over here, send the error to the backend
       console.log('error -> ', JSON.stringify(e));
       // const { scrapingSessionId } = e || {};
-      await ApiCalls.storeError({ error: e, scrapingSessionId });
+      await ApiCalls.storeError({ error: e, scrapingSessionId, sourceId: source.id, });
     } finally {
       await browser.close();
 
