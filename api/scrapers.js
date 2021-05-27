@@ -30,7 +30,7 @@ function initializeSession({ sourceId, scraper = SCRAPER_TYPES.NEW }) {
 function storeError({ error, id }) {
   if (!id) throw new Error('Scraper Session ID is required for marking as error');
   return api
-    .patch(`/scraper-sessions/markAsRead/${id}`, { error })
+    .patch(`/scraper-sessions/markAsFailed/${id}`, { error: error.message })
     .then(returnResponseOrError)
     .catch(e => {
       console.log(`couldn't mark scraping session as error`, e);

@@ -15,13 +15,13 @@ const puppeteer = require('puppeteer');
 (
   async function () {
 
+    const browser = await puppeteer.launch({
+      headless: false,
+      defaultViewport: { width: 2000, height: 2000 }
+    });
 
     try {
-      const browser = await puppeteer.launch({
-        headless: false,
-        defaultViewport: { width: 2000, height: 2000 }
-      });
-      const { source, paginationTypes, scrapingSessionId } = await ApiCalls.fetchInitialRequiredData();
+      var { source, paginationTypes, scrapingSessionId } = await ApiCalls.fetchInitialRequiredData();
       console.log('required info -> ', {
         source,
         paginationTypes,
@@ -137,7 +137,6 @@ const puppeteer = require('puppeteer');
       console.log('properties scraped -> ', JSON.stringify(properties));
 
       // to stop creating properties in the db, we're commenting this out till we're done.
-
       await ApiCalls.createProperties({
         properties,
         sourceId: source.id,
@@ -145,7 +144,8 @@ const puppeteer = require('puppeteer');
       });
     } catch (e) {
       // over here, send the error to the backend
-      console.log('error -> ', e);
+      console.log('error -> ', JSON.stringify(e));
+      // const { scrapingSessionId } = e || {};
       await ApiCalls.storeError({ error: e, scrapingSessionId });
     } finally {
       await browser.close();

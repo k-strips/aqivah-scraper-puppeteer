@@ -108,7 +108,7 @@ const initializeScrapingSession = async (sourceId) => {
     console.log(`\n*** ${celebrate} successfully initialized scraping session ${JSON.stringify(response)}`);
     return response.id;
   } catch (e) {
-    console.log(`${danger} failed to initialize scraping session. -> `, e);
+    console.log(`${error} failed to initialize scraping session. -> `, e);
     return ({ success: false, message: 'Failed to initialize scraping session', error: e });
   }
 };
@@ -120,7 +120,7 @@ const storeError = async ({ error, scrapingSessionId }) => {
     console.log(`\n*** ${celebrate} successfully stored failure of scraping session ***`);
     return response;
   } catch (error) {
-    console.log(`${danger} failed to store failure of scraping session ***`);
+    console.log(`${error} failed to store failure of scraping session ***`);
     return ({ success: false, message: 'failed to store failure of scraping session' });
   }
 };
