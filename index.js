@@ -103,18 +103,22 @@ const puppeteer = require('puppeteer');
           timeout: 1000 * 60 * 5,
         });
 
-        const initialDetails = await Promise.all(source.SourceFields.map(async each => {
-          const { selector, FieldType: fieldType, id } = each;
-          let fieldValue = '';
+        const initialDetails = await Promise.all(
+          source
+            ?.SourceFields
+            ?.filter(each => each?.isActive)
+            ?.map(async each => {
+              const { selector, FieldType: fieldType, id } = each;
+              let fieldValue = '';
 
-          if (fieldType.label === 'text') {
-            fieldValue = await getText(selector, newPage);
-          } else if (fieldType.label === 'image') {
-            fieldValue = await getImages(selector, newPage);
-          }
-          console.log('field value -> ', fieldValue);
-          return { [id]: fieldValue };
-        }));
+              if (fieldType.label === 'text') {
+                fieldValue = await getText(selector, newPage);
+              } else if (fieldType.label === 'image') {
+                fieldValue = await getImages(selector, newPage);
+              }
+              console.log('field value -> ', fieldValue);
+              return { [id]: fieldValue };
+            }));
 
         const details = initialDetails.reduce((final, each) => {
           const [key] = Object.keys(each);
