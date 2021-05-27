@@ -51,7 +51,7 @@ const fetchInitialRequiredData = async () => {
     //fetch the next source to scrape
     //fetch the pagination types
 
-    const source            = await fetchNextSource();
+    const source = await fetchNextSource();
     const scrapingSessionId = await initializeScrapingSession(source.id);
     return {
       source,
@@ -104,12 +104,24 @@ const createProperties = async properties => {
 const initializeScrapingSession = async (sourceId) => {
   try {
     console.log('\n*** initializing scraping session ***');
-    const response = await ScrapersApi.initializeSession({sourceId});
+    const response = await ScrapersApi.initializeSession({ sourceId });
     console.log(`\n*** ${celebrate} successfully initialized scraping session ${JSON.stringify(response)}`);
     return response.id;
   } catch (e) {
     console.log(`${danger} failed to initialize scraping session. -> `, e);
     return ({ success: false, message: 'Failed to initialize scraping session', error: e });
+  }
+};
+
+const storeError = async ({ error, scrapingSessionId }) => {
+  try {
+    console.log(`\n sending scraping session failure error to backend`);
+    const response = await ScrapersApi.storeError({ error, id: scrapingSessionId });
+    console.log(`\n*** ${celebrate} successfully stored failure of scraping session ***`);
+    return response;
+  } catch (error) {
+    console.log(`${danger} failed to store failure of scraping session ***`);
+    return ({ success: false, message: 'failed to store failure of scraping session' });
   }
 };
 
@@ -122,6 +134,7 @@ module.exports = {
   goToPage,
   createProperties,
   initializeScrapingSession,
+  storeError,
   celebrate,
   error,
   loading,

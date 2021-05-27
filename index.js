@@ -15,12 +15,12 @@ const puppeteer = require('puppeteer');
 (
   async function () {
 
-    const browser = await puppeteer.launch({
-      headless: false,
-      defaultViewport: { width: 2000, height: 2000 }
-    });
 
     try {
+      const browser = await puppeteer.launch({
+        headless: false,
+        defaultViewport: { width: 2000, height: 2000 }
+      });
       const { source, paginationTypes, scrapingSessionId } = await ApiCalls.fetchInitialRequiredData();
       console.log('required info -> ', {
         source,
@@ -30,7 +30,7 @@ const puppeteer = require('puppeteer');
       });
 
       const page = await browser.newPage();
-      await page.setDefaultNavigationTimeout(0)
+      await page.setDefaultNavigationTimeout(0);
       await page.goto(source.url, {
         waitUntil: ['load', 'domcontentloaded', 'networkidle0', 'networkidle2']
       });
@@ -146,6 +146,7 @@ const puppeteer = require('puppeteer');
     } catch (e) {
       // over here, send the error to the backend
       console.log('error -> ', e);
+      await ApiCalls.storeError({ error: e, scrapingSessionId });
     } finally {
       await browser.close();
 

@@ -14,7 +14,7 @@ const changeStatus = (id, status) => {
 };
 
 function initializeSession({ sourceId, scraper = SCRAPER_TYPES.NEW }) {
-  console.log('source id -> ', sourceId)
+  console.log('source id -> ', sourceId);
   if (!sourceId) {
     throw new Error('Source id is required for creating a scraping session');
   };
@@ -27,6 +27,16 @@ function initializeSession({ sourceId, scraper = SCRAPER_TYPES.NEW }) {
     });
 }
 
+function storeError({ error, id }) {
+  if (!id) throw new Error('Scraper Session ID is required for marking as error');
+  return api
+    .patch(`/scraper-sessions/markAsRead/${id}`, { error })
+    .then(returnResponseOrError)
+    .catch(e => {
+      console.log(`couldn't mark scraping session as error`, e);
+      throw e;
+    });
+}
 // function storeError(error)
 
 // exports.SCRAPER_TYPES = SCRAPER_TYPES;
@@ -37,4 +47,5 @@ module.exports = {
   SCRAPER_TYPES,
   changeStatus,
   initializeSession,
+  storeError,
 };
