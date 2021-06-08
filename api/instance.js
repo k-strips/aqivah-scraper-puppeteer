@@ -1,7 +1,6 @@
 const axios = require('axios');
 
 
-// axios.defaults.baseURL = process.env.API_ENDPOINT || 'http://localhost:5000';
 axios.defaults.baseURL = 'http://3.135.45.57:5000' || 'http://localhost:5000';
 
 const api = (method, url, variables) =>

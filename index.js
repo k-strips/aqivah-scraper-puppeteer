@@ -102,7 +102,7 @@ require('dotenv').config();
       // get the values, 
       // create an obj for the prop
       // place that obj in the scrapedProperties
-      const properties = await Promise.all(propertyLinks.slice(1, 4).map(async each => {
+      const properties = await Promise.all(propertyLinks.map(async each => {
         const property = { url: each, };
         let newPage = await browser.newPage();
         await newPage.goto(each, {
