@@ -51,7 +51,13 @@ require('dotenv').config();
         }
 
         propertyLinks = await page.evaluate(
-          (source) => [...document.querySelectorAll(source.singlePropertyQuerySelector)]
+          (source) => [
+            ...document
+              .querySelectorAll(
+                source
+                  .singlePropertyQuerySelector
+              )
+          ]
             .map(each => each.href),
           source
         );
