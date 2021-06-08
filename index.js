@@ -1,5 +1,6 @@
 const ApiCalls = require('./utilFunctions');
 const puppeteer = require('puppeteer');
+require('dotenv').config();
 /**
  * flow:
  * fetch the data we need from the backend

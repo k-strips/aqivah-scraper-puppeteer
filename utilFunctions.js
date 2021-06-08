@@ -16,6 +16,7 @@ const fetchNextSource = async () => {
     console.log('retrieved next source to scrape -> ', response);
     return response;
   } catch (e) {
+    console.error('failed to fetch next source to scrape -> ', e);
     console.log('failed to fetch next source to scrape -> ', e.data);
     //have a function that logs the error,  terminates the lambda and returns?
   }
