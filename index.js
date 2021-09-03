@@ -45,7 +45,7 @@ require('dotenv').config();
         console.log("pagination type is click", source.clickPaginationSelector);
         const pageToScrape = source.lastScrapedPage;
 
-        for (let i = 0;i < pageToScrape;i++) {
+        for (let i = 0; i < pageToScrape; i++) {
           await page.waitForSelector(source.clickPaginationSelector);
           await page.click(source.clickPaginationSelector);
         }
@@ -76,7 +76,7 @@ require('dotenv').config();
         // scroll the page x number of times
         //    for each scroll, wait for the page content to load
 
-        for (let i = 0;i < pageToScrape;i++) {
+        for (let i = 0; i < pageToScrape; i++) {
           let previousHeight = document.body.scrollHeight;
           await page.evaluate(() => {
             window.scrollTo(0, window.document.body.scrollHeight);
@@ -150,7 +150,7 @@ require('dotenv').config();
 
       // to stop creating properties in the db, we're commenting this out till we're done.
       await ApiCalls.createProperties({
-        properties,
+        properties: properties.slice(0, 5), // send only 5 properties to the back, for now. cos the server crashes with larger numbers
         sourceId: source.id,
         scraperSessionId: scrapingSessionId,
       });
