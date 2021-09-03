@@ -17,7 +17,7 @@ require('dotenv').config();
   async function () {
 
     const browser = await puppeteer.launch({
-      headless: false,
+      headless: true,
       defaultViewport: { width: 2000, height: 2000 }
     });
 
