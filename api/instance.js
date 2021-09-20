@@ -1,21 +1,22 @@
-const axios = require('axios');
-
+const axios = require("axios");
 
 // axios.defaults.baseURL = process.env.API_ENDPOINT || 'http://localhost:5000';
-axios.defaults.baseURL = 'http://localhost:5000';
+axios.defaults.baseURL = "https://aqivah-scraper-api-server.herokuapp.com/";
 
 const api = (method, url, variables) =>
   new Promise((resolve, reject) => {
     axios({
-      url, method,
+      url,
+      method,
       headers: { "Content-Type": "application/json" },
       params: method === "get" ? variables : undefined,
       data: method !== "get" ? variables : undefined,
     })
-      .then(response => resolve(response))
-      .catch(e => { reject(e); });
+      .then((response) => resolve(response))
+      .catch((e) => {
+        reject(e);
+      });
   });
-
 
 module.exports = {
   get: (...args) => api("get", ...args),
