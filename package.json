@@ -9,6 +9,11 @@
   "scripts": {
     "cypress": "node_modules/.bin/cypress open"
   },
+  "keywords": [
+    "scraper",
+    "heroku",
+    "puppeteer"
+  ],
   "dependencies": {
     "axios": "^0.21.1",
     "cypress": "^7.1.0",
