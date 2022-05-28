@@ -177,7 +177,7 @@ require("dotenv").config();
     await ApiCalls.storeError({
       error: e,
       scrapingSessionId,
-      sourceId: source.id,
+      sourceId: source?.id,
     });
   } finally {
     await browser.close();
