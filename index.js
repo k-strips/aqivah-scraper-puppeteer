@@ -1,6 +1,6 @@
-const ApiCalls = require('./utilFunctions');
-const puppeteer = require('puppeteer');
-require('dotenv').config();
+const ApiCalls = require("./utilFunctions");
+const puppeteer = require("puppeteer");
+require("dotenv").config();
 /**
  * flow:
  * fetch the data we need from the backend
@@ -10,123 +10,138 @@ require('dotenv').config();
  *  - visit these properties one by one, scrape the property details, add details to values, and close tab
  *  - if error occurs at any point in time, catch it, send to the backend, and exit
  *  - upon successfully getting all the details, send the values to the backend.
- * 
+ *
  */
 
-(
-  async function () {
+(async function () {
+  const browser = await puppeteer.launch({
+    headless: false,
+    args: [
+      "--no-sandbox",
+      "--disable-dev-shm-usage", // <-- add this one
+    ],
+    defaultViewport: { width: 2000, height: 2000 },
+  });
 
-    const browser = await puppeteer.launch({
-      headless: false,
-      defaultViewport: { width: 2000, height: 2000 }
+  try {
+    var { source, paginationTypes, scrapingSessionId } =
+      await ApiCalls.fetchInitialRequiredData();
+    console.log("required info -> ", {
+      source,
+      paginationTypes,
+      fields: source.SourceFields,
+      fieldType: source.SourceFields[0].FieldType,
     });
 
-    try {
-      var { source, paginationTypes, scrapingSessionId } = await ApiCalls.fetchInitialRequiredData();
-      console.log('required info -> ', {
-        source,
-        paginationTypes,
-        fields: source.SourceFields,
-        fieldType: source.SourceFields[0].FieldType,
-      });
+    const page = await browser.newPage();
+    await page.setDefaultNavigationTimeout(0);
+    await page.goto(source.url, {
+      waitUntil: ["load", "domcontentloaded", "networkidle0", "networkidle2"],
+    });
 
-      const page = await browser.newPage();
-      await page.setDefaultNavigationTimeout(0);
-      await page.goto(source.url, {
-        waitUntil: ['load', 'domcontentloaded', 'networkidle0', 'networkidle2']
-      });
+    let propertyLinks = [];
 
-      let propertyLinks = [];
+    // use pagination to go to the right page
+    if (source.paginationType === paginationTypes.CLICK) {
+      // click on the next page link lastScrapedPage + 1 times to go to the right page
+      // we'll have to wait after each click, for the next page to load.
+      console.log("pagination type is click", source.clickPaginationSelector);
+      const pageToScrape = source.lastScrapedPage;
 
-      // use pagination to go to the right page
-      if (source.paginationType === paginationTypes.CLICK) {
-        // click on the next page link lastScrapedPage + 1 times to go to the right page
-        // we'll have to wait after each click, for the next page to load.
-        console.log("pagination type is click", source.clickPaginationSelector);
-        const pageToScrape = source.lastScrapedPage;
-
-        for (let i = 0;i < pageToScrape;i++) {
-          await page.waitForSelector(source.clickPaginationSelector);
-          await page.click(source.clickPaginationSelector);
-        }
-
-        propertyLinks = await page.evaluate(
-          (source) => [
-            ...document
-              .querySelectorAll(
-                source
-                  .singlePropertyQuerySelector
-              )
-          ]
-            .map(each => each.href),
-          source
-        );
-
-      } else if (source.paginationType === paginationTypes.INFINITE) {
-
-        // determine how many are on a page, by checking the number of properties in the dom. let's call this number 'y'.
-        const numPropertiesOnPage = await page.evaluate(({ source }) => {
-          return document.querySelectorAll(source.singlePropertyQuerySelector).length;
-        }, { source });
-
-        console.log('number of properties per page -> ', numPropertiesOnPage);
-
-        const pageToScrape = source.lastScrapedPage;
-
-        // scroll the page x number of times
-        //    for each scroll, wait for the page content to load
-
-        for (let i = 0;i < pageToScrape;i++) {
-          let previousHeight = document.body.scrollHeight;
-          await page.evaluate(() => {
-            window.scrollTo(0, window.document.body.scrollHeight);
-          });
-          await page.waitForFunction(`document.body.scrollHeight > ${previousHeight}`);
-          await page.waitFor(1000);
-        }
-
-        // then fetch the properties from the dom. because it's infinite scrolling, from page 1 to page x might be on there.
-        // so we take the 'y' number of items from the back of the array, and use those for the scraping
-        propertyLinks = await page.evaluate(({ source, numPropertiesOnPage }) => {
-          const allItems = [...document.querySelectorAll(source.singlePropertyQuerySelector)].map(each => each.href);
-          return allItems.slice(Math.max(allItems - numPropertiesOnPage, 1));
-        }, { source, numPropertiesOnPage });
+      for (let i = 0; i < pageToScrape; i++) {
+        await page.waitForSelector(source.clickPaginationSelector);
+        await page.click(source.clickPaginationSelector);
       }
 
+      propertyLinks = await page.evaluate(
+        (source) =>
+          [
+            ...document.querySelectorAll(source.singlePropertyQuerySelector),
+          ].map((each) => each.href),
+        source
+      );
+    } else if (source.paginationType === paginationTypes.INFINITE) {
+      // determine how many are on a page, by checking the number of properties in the dom. let's call this number 'y'.
+      const numPropertiesOnPage = await page.evaluate(
+        ({ source }) => {
+          return document.querySelectorAll(source.singlePropertyQuerySelector)
+            .length;
+        },
+        { source }
+      );
 
-      // from here, we're on the right page. we can start taking the field details for each of the properties, and package them for delivery to the backend.
-      console.log('extracted property links -> ', propertyLinks);
+      console.log("number of properties per page -> ", numPropertiesOnPage);
 
-      // for each page, 
-      // visit the page, 
-      // get the values, 
-      // create an obj for the prop
-      // place that obj in the scrapedProperties
-      const properties = await Promise.all(propertyLinks.slice(1, 4).map(async each => {
-        const property = { url: each, };
+      const pageToScrape = source.lastScrapedPage;
+
+      // scroll the page x number of times
+      //    for each scroll, wait for the page content to load
+
+      for (let i = 0; i < pageToScrape; i++) {
+        let previousHeight = document.body.scrollHeight;
+        await page.evaluate(() => {
+          window.scrollTo(0, window.document.body.scrollHeight);
+        });
+        await page.waitForFunction(
+          `document.body.scrollHeight > ${previousHeight}`
+        );
+        await page.waitFor(1000);
+      }
+
+      // then fetch the properties from the dom. because it's infinite scrolling, from page 1 to page x might be on there.
+      // so we take the 'y' number of items from the back of the array, and use those for the scraping
+      propertyLinks = await page.evaluate(
+        ({ source, numPropertiesOnPage }) => {
+          const allItems = [
+            ...document.querySelectorAll(source.singlePropertyQuerySelector),
+          ].map((each) => each.href);
+          return allItems.slice(Math.max(allItems - numPropertiesOnPage, 1));
+        },
+        { source, numPropertiesOnPage }
+      );
+    }
+
+    // from here, we're on the right page. we can start taking the field details for each of the properties, and package them for delivery to the backend.
+    console.log("extracted property links -> ", propertyLinks);
+
+    // for each page,
+    // visit the page,
+    // get the values,
+    // create an obj for the prop
+    // place that obj in the scrapedProperties
+    const properties = await Promise.all(
+      propertyLinks.slice(1, 4).map(async (each) => {
+        const property = { url: each };
         let newPage = await browser.newPage();
         await newPage.goto(each, {
-          waitUntil: ['load', 'domcontentloaded', 'networkidle0', 'networkidle2'],
+          waitUntil: [
+            "load",
+            "domcontentloaded",
+            "networkidle0",
+            "networkidle2",
+          ],
           timeout: 1000 * 60 * 5,
         });
 
         const initialDetails = await Promise.all(
-          source
-            .SourceFields
-            .filter(each => each.isActive)
-            .map(async each => {
+          source.SourceFields.filter((each) => each.isActive).map(
+            async (each) => {
               const { selector, FieldType: fieldType, id } = each;
-              let fieldValue = '';
+              let fieldValue = "";
               if (!fieldType) return { [id]: each.defaultValue };
 
-              if (fieldType.label === 'text') {
-                fieldValue = await getText(selector, newPage) || each.defaultValue;
-              } else if (fieldType.label === 'image') {
-                fieldValue = await getImages(selector, newPage) || each.defaultValue;
+              if (fieldType.label === "text") {
+                fieldValue =
+                  (await getText(selector, newPage)) || each.defaultValue;
+              } else if (fieldType.label === "image") {
+                fieldValue =
+                  (await getImages(selector, newPage)) || each.defaultValue;
               }
-              console.log('field value -> ', fieldValue);
+              console.log("field value -> ", fieldValue);
               return { [id]: fieldValue };
-            }));
+            }
+          )
+        );
 
         const details = initialDetails.reduce((final, each) => {
           const [key] = Object.keys(each);
@@ -136,62 +151,65 @@ require('dotenv').config();
           };
         });
         // we want to get all the field details from the page, and create the obj.
-        return { ...property, details, };
-      }));
-      // in the end, we want to send the ff obj to the back:
-      /**
-       * {
-       * properties: [],
-       * sourceId: '',
-       * scraperSessionId: '',
-       * }
-       */
-      console.log('properties scraped -> ', JSON.stringify(properties));
+        return { ...property, details };
+      })
+    );
+    // in the end, we want to send the ff obj to the back:
+    /**
+     * {
+     * properties: [],
+     * sourceId: '',
+     * scraperSessionId: '',
+     * }
+     */
+    console.log("properties scraped -> ", JSON.stringify(properties));
 
-      // to stop creating properties in the db, we're commenting this out till we're done.
-      await ApiCalls.createProperties({
-        properties,
-        sourceId: source.id,
-        scraperSessionId: scrapingSessionId,
-      });
-    } catch (e) {
-      // over here, send the error to the backend
-      console.log('error -> ', JSON.stringify(e));
-      // const { scrapingSessionId } = e || {};
-      await ApiCalls.storeError({ error: e, scrapingSessionId, sourceId: source.id, });
-    } finally {
-      await browser.close();
-
-    }
+    // to stop creating properties in the db, we're commenting this out till we're done.
+    await ApiCalls.createProperties({
+      properties,
+      sourceId: source.id,
+      scraperSessionId: scrapingSessionId,
+    });
+  } catch (e) {
+    // over here, send the error to the backend
+    console.log("error -> ", JSON.stringify(e));
+    // const { scrapingSessionId } = e || {};
+    await ApiCalls.storeError({
+      error: e,
+      scrapingSessionId,
+      sourceId: source.id,
+    });
+  } finally {
+    await browser.close();
   }
-)();
-
+})();
 
 async function getText(selector, page) {
   const value = await page
-    .evaluate(selector => document.querySelector(selector).textContent, selector)
-    .catch(e => { console.log('failed to get selector text -> ', e); });
+    .evaluate(
+      (selector) => document.querySelector(selector).textContent,
+      selector
+    )
+    .catch((e) => {
+      console.log("failed to get selector text -> ", e);
+    });
 
   return value;
 }
 
 async function getImages(selector, page) {
   const value = await page
-    .evaluate(
-      selector => {
-        return [...document.querySelectorAll(selector)]
-          .map(each => each.getAttribute("src"))
-          .filter(each => Boolean(each))
-          .reduce((final, each) => `${final}, ${each}`, '');
-      },
-      selector
-    ).then(
-      images => {
-        console.log('images -> ', images);
-        return images;
-      }
-    )
-    .catch(e => console.log('failed to get images -> ', e));
+    .evaluate((selector) => {
+      return [...document.querySelectorAll(selector)]
+        .map((each) => each.getAttribute("src"))
+        .filter((each) => Boolean(each))
+        .reduce((final, each) => `${final}, ${each}`, "");
+    }, selector)
+    .then((images) => {
+      console.log("images -> ", images);
+      return images;
+    })
+    .catch((e) => console.log("failed to get images -> ", e));
 
   return value;
 }
