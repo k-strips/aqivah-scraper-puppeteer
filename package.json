@@ -7,7 +7,7 @@
   "license": "MIT",
   "private": true,
   "scripts": {
-    "cypress": "node_modules/.bin/cypress open"
+    "cypress": "cypress open"
   },
   "keywords": [
     "scraper",
@@ -23,5 +23,14 @@
     "dotenv": "^10.0.0",
     "node-cron": "^3.0.0",
     "puppeteer": "^9.0.0"
-  }
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/k-strips/aqivah-scraper-puppeteer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/k-strips/aqivah-scraper-puppeteer/issues"
+  },
+  "homepage": "https://github.com/k-strips/aqivah-scraper-puppeteer#readme"
 }
